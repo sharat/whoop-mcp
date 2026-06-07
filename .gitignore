@@ -1,0 +1,19 @@
+# Binaries
+whoop-mcp
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Secrets & Local Configurations
+.env
+.env.local
+.env.*.local
+
+# OS Files
+.DS_Store
+Thumbs.db
+
+# Tool logs
+.antigravitycli/
