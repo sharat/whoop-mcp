@@ -11,9 +11,9 @@ import (
 	"os"
 	"time"
 
-	"whoop-mcp/pkg/config"
-	"whoop-mcp/pkg/mcp"
-	"whoop-mcp/pkg/whoop"
+	"github.com/sharat/whoop-mcp/pkg/config"
+	"github.com/sharat/whoop-mcp/pkg/mcp"
+	"github.com/sharat/whoop-mcp/pkg/whoop"
 )
 
 func main() {

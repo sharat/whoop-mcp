@@ -5,7 +5,7 @@ import (
 	"strconv"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"whoop-mcp/pkg/whoop"
+	"github.com/sharat/whoop-mcp/pkg/whoop"
 )
 
 type Server struct {

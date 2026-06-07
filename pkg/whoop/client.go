@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"whoop-mcp/pkg/config"
+	"github.com/sharat/whoop-mcp/pkg/config"
 )
 
 type Client struct {

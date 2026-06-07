@@ -1,4 +1,4 @@
-module whoop-mcp
+module github.com/sharat/whoop-mcp
 
 go 1.26.4
 
