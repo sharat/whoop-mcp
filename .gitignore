@@ -1,5 +1,5 @@
 # Binaries
-whoop-mcp
+/whoop-mcp
 *.exe
 *.exe~
 *.dll
