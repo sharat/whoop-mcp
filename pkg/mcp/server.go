@@ -25,7 +25,7 @@ type QueryParams struct {
 func NewServer(client *whoop.Client) *Server {
 	s := mcp.NewServer(&mcp.Implementation{
 		Name:    "whoop-mcp",
-		Version: "1.0.0",
+		Version: "1.0.1",
 	}, nil)
 
 	srv := &Server{
