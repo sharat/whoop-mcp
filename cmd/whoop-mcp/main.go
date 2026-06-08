@@ -35,19 +35,19 @@ func main() {
 func handleLogin(cfg *config.Config) {
 	if cfg.ClientID == "" || cfg.ClientSecret == "" {
 		fmt.Println("Error: WHOOP_CLIENT_ID and WHOOP_CLIENT_SECRET must be set in your .env file or environment.")
-		fmt.Println("Please make sure they are defined in: /Users/sarat/github/whoop-mcp/.env")
+		fmt.Println("Make sure they are defined in your .env file or exported as environment variables.")
 		os.Exit(1)
 	}
 
 	state := fmt.Sprintf("%d", time.Now().UnixNano())
-	
+
 	// Scopes required for WHOOP API v2
 	scopes := "offline read:profile read:body_measurement read:cycles read:sleep read:recovery read:workout"
-	
+
 	authURL := fmt.Sprintf("%s?client_id=%s&redirect_uri=%s&response_type=code&scope=%s&state=%s",
 		config.AuthURL,
 		url.QueryEscape(cfg.ClientID),
-		url.QueryEscape(config.RedirectURI),
+		url.QueryEscape(cfg.RedirectURI()),
 		url.QueryEscape(scopes),
 		state,
 	)
@@ -60,10 +60,10 @@ func handleLogin(cfg *config.Config) {
 	fmt.Println(authURL)
 	fmt.Println()
 	fmt.Println("2. Once authorized, you will be automatically redirected.")
-	fmt.Println("   Waiting for callback on http://127.0.0.1:8181/callback ...")
+	fmt.Printf("   Waiting for callback on %s ...\n", cfg.RedirectURI())
 	fmt.Println("=========================================================")
 
-	srv := &http.Server{Addr: ":8181"}
+	srv := &http.Server{Addr: cfg.CallbackAddress()}
 	var loginErr error
 
 	http.HandleFunc("/callback", func(w http.ResponseWriter, r *http.Request) {
@@ -74,7 +74,7 @@ func handleLogin(cfg *config.Config) {
 		if cbState != state {
 			msg := "Error: state mismatch. Security verification failed."
 			http.Error(w, msg, http.StatusBadRequest)
-			loginErr = fmt.Errorf(msg)
+			loginErr = fmt.Errorf("%s", msg)
 			go func() { _ = srv.Shutdown(context.Background()) }()
 			return
 		}
@@ -82,7 +82,7 @@ func handleLogin(cfg *config.Config) {
 		if code == "" {
 			msg := "Error: authorization code not provided in callback."
 			http.Error(w, msg, http.StatusBadRequest)
-			loginErr = fmt.Errorf(msg)
+			loginErr = fmt.Errorf("%s", msg)
 			go func() { _ = srv.Shutdown(context.Background()) }()
 			return
 		}
@@ -91,7 +91,7 @@ func handleLogin(cfg *config.Config) {
 		data := url.Values{}
 		data.Set("grant_type", "authorization_code")
 		data.Set("code", code)
-		data.Set("redirect_uri", config.RedirectURI)
+		data.Set("redirect_uri", cfg.RedirectURI())
 		data.Set("client_id", cfg.ClientID)
 		data.Set("client_secret", cfg.ClientSecret)
 
@@ -99,7 +99,7 @@ func handleLogin(cfg *config.Config) {
 		if err != nil {
 			msg := fmt.Sprintf("Failed to request tokens: %v", err)
 			http.Error(w, msg, http.StatusInternalServerError)
-			loginErr = fmt.Errorf(msg)
+			loginErr = fmt.Errorf("%s", msg)
 			go func() { _ = srv.Shutdown(context.Background()) }()
 			return
 		}
@@ -109,7 +109,7 @@ func handleLogin(cfg *config.Config) {
 		if err != nil {
 			msg := fmt.Sprintf("Failed to read token response: %v", err)
 			http.Error(w, msg, http.StatusInternalServerError)
-			loginErr = fmt.Errorf(msg)
+			loginErr = fmt.Errorf("%s", msg)
 			go func() { _ = srv.Shutdown(context.Background()) }()
 			return
 		}
@@ -117,7 +117,7 @@ func handleLogin(cfg *config.Config) {
 		if resp.StatusCode != http.StatusOK {
 			msg := fmt.Sprintf("Token exchange failed with status %d: %s", resp.StatusCode, string(body))
 			http.Error(w, msg, http.StatusBadRequest)
-			loginErr = fmt.Errorf(msg)
+			loginErr = fmt.Errorf("%s", msg)
 			go func() { _ = srv.Shutdown(context.Background()) }()
 			return
 		}
@@ -131,7 +131,7 @@ func handleLogin(cfg *config.Config) {
 		if err := json.Unmarshal(body, &tokenResp); err != nil {
 			msg := fmt.Sprintf("Failed to parse token response: %v", err)
 			http.Error(w, msg, http.StatusInternalServerError)
-			loginErr = fmt.Errorf(msg)
+			loginErr = fmt.Errorf("%s", msg)
 			go func() { _ = srv.Shutdown(context.Background()) }()
 			return
 		}
@@ -143,7 +143,7 @@ func handleLogin(cfg *config.Config) {
 		if err := config.SaveConfig(cfg); err != nil {
 			msg := fmt.Sprintf("Failed to save configuration: %v", err)
 			http.Error(w, msg, http.StatusInternalServerError)
-			loginErr = fmt.Errorf(msg)
+			loginErr = fmt.Errorf("%s", msg)
 			go func() { _ = srv.Shutdown(context.Background()) }()
 			return
 		}

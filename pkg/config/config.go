@@ -2,8 +2,11 @@ package config
 
 import (
 	"encoding/json"
+	"fmt"
+	"net"
 	"os"
 	"path/filepath"
+	"strconv"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -15,12 +18,21 @@ type Config struct {
 	AccessToken  string    `json:"access_token"`
 	RefreshToken string    `json:"refresh_token"`
 	ExpiresAt    time.Time `json:"expires_at"`
+	CallbackPort int       `json:"-"`
 }
 
-const RedirectURI = "http://127.0.0.1:8181/callback"
+const DefaultCallbackPort = 8181
 const AuthURL = "https://api.prod.whoop.com/oauth/oauth2/auth"
 const TokenURL = "https://api.prod.whoop.com/oauth/oauth2/token"
 const BaseURL = "https://api.prod.whoop.com/developer" // Base URL for WHOOP API calls. Base URL + /v2/...
+
+func (c *Config) CallbackAddress() string {
+	return net.JoinHostPort("127.0.0.1", strconv.Itoa(c.CallbackPort))
+}
+
+func (c *Config) RedirectURI() string {
+	return "http://" + c.CallbackAddress() + "/callback"
+}
 
 // GetConfigPath returns the path to the configuration file
 func GetConfigPath() (string, error) {
@@ -39,6 +51,15 @@ func LoadConfig() (*Config, error) {
 	cfg := &Config{
 		ClientID:     os.Getenv("WHOOP_CLIENT_ID"),
 		ClientSecret: os.Getenv("WHOOP_CLIENT_SECRET"),
+		CallbackPort: DefaultCallbackPort,
+	}
+
+	if value := os.Getenv("WHOOP_CALLBACK_PORT"); value != "" {
+		port, err := strconv.Atoi(value)
+		if err != nil || port < 1 || port > 65535 {
+			return nil, fmt.Errorf("WHOOP_CALLBACK_PORT must be an integer between 1 and 65535")
+		}
+		cfg.CallbackPort = port
 	}
 
 	// Load tokens from config file if they exist

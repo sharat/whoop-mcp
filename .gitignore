@@ -17,3 +17,8 @@ Thumbs.db
 
 # Tool logs
 .antigravitycli/
+
+whoop-mcp-debug
+whoop-mcp-local
+*.tar.gz
+*.zip

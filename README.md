@@ -17,7 +17,7 @@ A Model Context Protocol (MCP) server written in Go that integrates with **v2** 
    - Log in to the [WHOOP Developer Dashboard](https://developer-dashboard.whoop.com).
    - Click **Create App** to register a new integration.
    - Enter your App Details (Name, Description).
-   - **Important:** Add the Redirect URI: `http://127.0.0.1:8181/callback` to the redirect URIs list. This port and path are required by the local OAuth loopback server to securely receive authorization tokens.
+   - **Important:** Add the default Redirect URI, `http://127.0.0.1:8181/callback`, to the redirect URIs list. Register the corresponding URI instead if you configure another callback port.
    - Save the app configuration to generate your **Client ID** and **Client Secret**.
 
 ---
@@ -25,12 +25,23 @@ A Model Context Protocol (MCP) server written in Go that integrates with **v2** 
 ## Setup & Configuration
 
 ### 1. Environment Variables
-Create a file named `.env` in the root of the project (if not already present) and populate your WHOOP client credentials:
+Create `.env` from the provided example:
 
-```env
-WHOOP_CLIENT_ID=your_client_id_here
-WHOOP_CLIENT_SECRET=your_client_secret_here
+```bash
+cp .env.example .env
 ```
+
+Edit `.env` and replace the placeholder values for `WHOOP_CLIENT_ID` and
+`WHOOP_CLIENT_SECRET`. `WHOOP_CALLBACK_PORT` is optional and defaults to `8181`.
+
+The `.env` file is loaded from the process working directory. When launching the
+server from another directory or through an MCP client, set these variables in
+the client configuration instead. Explicit environment variables take
+precedence over `.env` and saved configuration values.
+
+If you change `WHOOP_CALLBACK_PORT`, register the matching redirect URI in the
+WHOOP Developer Dashboard. For example, port `9191` requires
+`http://127.0.0.1:9191/callback`.
 
 ### 2. Run OAuth Authorization
 Start the temporary loopback HTTP server to authorize the server to read your WHOOP data:
@@ -41,7 +52,7 @@ go run cmd/whoop-mcp/main.go login
 
 1. The terminal will print a login URL. Open it in your browser.
 2. Log in with your WHOOP credentials and grant permissions.
-3. Upon approval, you will be redirected to `http://127.0.0.1:8181/callback`, and your tokens will be saved to `~/.config/whoop-mcp/config.json`.
+3. Upon approval, you will be redirected to the configured callback URI (port `8181` by default), and your tokens will be saved to `~/.config/whoop-mcp/config.json`.
 
 ---
 
@@ -73,16 +84,17 @@ The server registers the following tools:
 
 ## Client Configuration (e.g., Claude Desktop)
 
-To use this server with **Claude Desktop**, add the following config to your `claude_desktop_config.json` (located at `~/Library/Application Support/Claude/claude_desktop_config.json` on macOS):
+To use this server with **Claude Desktop**, add the following config to your `claude_desktop_config.json` (located at `~/Library/Application Support/Claude/claude_desktop_config.json` on macOS).
 
+### Option 1: Run from Source (requires Go)
 ```json
 {
   "mcpServers": {
     "whoop": {
-      "command": "/opt/homebrew/bin/go",
+      "command": "go",
       "args": [
         "run",
-        "/Users/sarat/github/whoop-mcp/cmd/whoop-mcp/main.go"
+        "/PATH/TO/whoop-mcp/cmd/whoop-mcp/main.go"
       ],
       "env": {
         "WHOOP_CLIENT_ID": "your_client_id_here",
@@ -93,4 +105,43 @@ To use this server with **Claude Desktop**, add the following config to your `cl
 }
 ```
 
-*(Note: Change the `command` path to match your Go installation path, which you can find by running `which go` in your terminal.)*
+### Option 2: Use Pre-built Binary (no Go required)
+Download from [Releases](https://github.com/sharat/whoop-mcp/releases) or build locally:
+```bash
+go build -o whoop-mcp ./cmd/whoop-mcp
+```
+Then configure:
+```json
+{
+  "mcpServers": {
+    "whoop": {
+      "command": "/PATH/TO/whoop-mcp/whoop-mcp",
+      "env": {
+        "WHOOP_CLIENT_ID": "your_client_id_here",
+        "WHOOP_CLIENT_SECRET": "your_client_secret_here"
+      }
+    }
+  }
+}
+```
+
+### Option 3: Installed via `go install`
+```bash
+go install github.com/sharat/whoop-mcp@latest
+```
+Then configure (binary at `~/go/bin/whoop-mcp`):
+```json
+{
+  "mcpServers": {
+    "whoop": {
+      "command": "~/go/bin/whoop-mcp",
+      "env": {
+        "WHOOP_CLIENT_ID": "your_client_id_here",
+        "WHOOP_CLIENT_SECRET": "your_client_secret_here"
+      }
+    }
+  }
+}
+```
+
+*(Note: Replace `/PATH/TO/whoop-mcp` with the absolute path to your cloned repository or downloaded binary. Find your Go path with `which go` — use just `go` if it's in your PATH, or the full path like `/opt/homebrew/bin/go`.)*
